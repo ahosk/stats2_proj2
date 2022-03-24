@@ -16,94 +16,101 @@ library(magrittr)
 library(readr)
 library(glmnet)
 library(caret)
+library(plotmo)
 ```
 
 ```{r Read in Data Set}
 df = read.csv(file.choose(),header = TRUE)
 head(df)
+
+df$y <- as.factor(df$y)
 ```
 
 ```{r Train/Test Split}
 
+## 75% of the sample size
+smp_size <- floor(0.80 * nrow(df))
 
-set.seed(12384128)
-subset = sample(nrow(df), nrow(df) * 0.8)
-bank.train = df[subset,-c(1,3) ]
-bank.test = df[-subset,-c(1,3)]
+## set the seed to make your partition reproducible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(df)), size = smp_size)
 
-table(bank.train$y) 
+train_df <- df[train_ind, ]
+test_df <- df[-train_ind, ]
 
+ctrl <- trainControl(method = "cv", number = 10, classProbs = TRUE)
+```
+
+
+```{r Simple Logistic Regression}
 
 ```
 
-```{r}
-
-bank_lasso <- glmnet(x=bank_train_X, y=bank_train_Y)
-
-bank_lasso_cv<- cv.glmnet(x=bank_train_X, y=bank_train_Y)
-plot(bank_lasso_cv)
+```{r Variable Importance}
+log_imp = varImp(log_fit, scale = FALSE, competes = FALSE)
+log_imp
 ```
+
+```{r Prediction on Simple Logistric Regression}
+pred_log <- predict(log_fit, newdata = test_df)
+confusionMatrix(pred_log, test_df$y)
+
+plot_glmnet(lasso.mod, label=5,nresponse = 3) 
+```
+
+
 
 ```{r LASSO}
 
 glimpse(expl)
 glimpse(resp)
 #defining response variable
-resp = df$y
+train_resp = train_df$y
+test_resp = test_df$y
 
 #recode yes/no to 1 and 0
-resp = ifelse(resp =="yes",1,0)
+train_resp = ifelse(train_resp =="yes",1,0)
+test_resp = ifelse(test_resp =="yes",1,0)
 
 #defining explanatory variables
-expl = data.matrix(df[,1:16])
+train_expl = data.matrix(train_df[,1:16])
+test_expl = data.matrix(test_df[,1:16])
 
 
-cv_model = cv.glmnet(expl,resp,alpha = 1, family = 'binomial')
+#simple log regression
+simple_log_fit = glm(train_resp ~ train_expl[,1:16],family = binomial)
+summary(simple_log_fit)
+plot(simple_log_fit)
+#simple lasso log regression
+
+simple_model = glmnet(train_expl,train_resp,alpha = 1,family = 'binomial')
+plot_glmnet(simple_model,label=5,nresponse =3)
+simple_model$lambda.min
+
+#cv model
+cv_model = cv.glmnet(train_expl,train_resp,alpha = 1, family = 'binomial')
 best_lambda = cv_model$lambda.min
 best_lambda
 
-#plot
+#plot cv model
 plot(cv_model)
 
-best_model = glmnet(expl,resp,alpha = 1, labmda = best_lambda)
+
+
+#lasso model
+best_model = glmnet(train_expl,train_resp,alpha = 1, labmda = best_lambda,family = 'binomial')
 best_model
 coef(best_model,best_lambda)
 
 ```
 
 
-```{r}
-
-#set seed to ensure reproducible results
-set.seed(42)
-#split into training and test sets
-subset = sample(nrow(df), nrow(df) * 0.8)
-bank.train = df[subset,-c(1,3) ]
-bank.test = df[-subset,-c(1,3)]
-
-#get column index of train flag
-trainColNum <- grep("train",names(bank.train))
-#remove train flag column from train and test sets
-trainset <- bank.train[,-trainColNum]
-testset <- bank.test[,-trainColNum]
-#get column index of predicted variable in dataset
-typeColNum <- grep("diabetes",names(df))
-#build model
-glm_model <- glm(y ~ .,data = trainset, family = binomial)
-summary(glm_model)
-
-
-
-library(glmnet)
-#convert training data to matrix format
-x <- model.matrix(diabetes~.,trainset)
-#convert class to numerical variable
-y <- ifelse(trainset$diabetes==”pos”,1,0)
-#perform grid search to find optimal value of lambda
-#family= binomial => logistic regression, alpha=1 => lasso
-# check docs to explore other type.measure options
-cv.out <- cv.glmnet(x,y,alpha=1,family=”binomial”,type.measure = “mse” )
-#plot result
-plot(cv.out)
+```{r Better Simple Linear Regression}
+#assess lasso model
+assess.glmnet(best_model,test_expl,test_resp, family = 'binomial',s = best_lambda)
+#return confusion matrix from lasso model
+confusion.glmnet(best_model,test_expl,test_resp,family = 'binomial',s=best_lambda)
+#plot roc curve from lasso model
+plot(roc.glmnet(best_model,test_expl,test_resp,family = 'binomial',s=best_lambda))
 
 ```
