@@ -1,0 +1,109 @@
+---
+title: "Stats 2 Project 2"
+author: "Allen Hoskins"
+date: "3/23/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Package Setup}
+library(tidyverse)
+library(naniar)
+library(magrittr)
+library(readr)
+library(glmnet)
+library(caret)
+```
+
+```{r Read in Data Set}
+df = read.csv(file.choose(),header = TRUE)
+head(df)
+```
+
+```{r Train/Test Split}
+
+
+set.seed(12384128)
+subset = sample(nrow(df), nrow(df) * 0.8)
+bank.train = df[subset,-c(1,3) ]
+bank.test = df[-subset,-c(1,3)]
+
+table(bank.train$y) 
+
+
+```
+
+```{r}
+
+bank_lasso <- glmnet(x=bank_train_X, y=bank_train_Y)
+
+bank_lasso_cv<- cv.glmnet(x=bank_train_X, y=bank_train_Y)
+plot(bank_lasso_cv)
+```
+
+```{r LASSO}
+
+glimpse(expl)
+glimpse(resp)
+#defining response variable
+resp = df$y
+
+#recode yes/no to 1 and 0
+resp = ifelse(resp =="yes",1,0)
+
+#defining explanatory variables
+expl = data.matrix(df[,1:16])
+
+
+cv_model = cv.glmnet(expl,resp,alpha = 1, family = 'binomial')
+best_lambda = cv_model$lambda.min
+best_lambda
+
+#plot
+plot(cv_model)
+
+best_model = glmnet(expl,resp,alpha = 1, labmda = best_lambda)
+best_model
+coef(best_model,best_lambda)
+
+```
+
+
+```{r}
+
+#set seed to ensure reproducible results
+set.seed(42)
+#split into training and test sets
+subset = sample(nrow(df), nrow(df) * 0.8)
+bank.train = df[subset,-c(1,3) ]
+bank.test = df[-subset,-c(1,3)]
+
+#get column index of train flag
+trainColNum <- grep("train",names(bank.train))
+#remove train flag column from train and test sets
+trainset <- bank.train[,-trainColNum]
+testset <- bank.test[,-trainColNum]
+#get column index of predicted variable in dataset
+typeColNum <- grep("diabetes",names(df))
+#build model
+glm_model <- glm(y ~ .,data = trainset, family = binomial)
+summary(glm_model)
+
+
+
+library(glmnet)
+#convert training data to matrix format
+x <- model.matrix(diabetes~.,trainset)
+#convert class to numerical variable
+y <- ifelse(trainset$diabetes==”pos”,1,0)
+#perform grid search to find optimal value of lambda
+#family= binomial => logistic regression, alpha=1 => lasso
+# check docs to explore other type.measure options
+cv.out <- cv.glmnet(x,y,alpha=1,family=”binomial”,type.measure = “mse” )
+#plot result
+plot(cv.out)
+
+```
