@@ -165,19 +165,20 @@ plot(roc.glmnet(mid_best_model,test_expl,test_resp,family = 'binomial',s=mid_bes
 ```
 
 
-```{r relaxed lasso}
+```{r RELAXED LASSO}
 
 #cv model
-relaxed_cv_model = cv.glmnet(train_expl,train_resp,alpha = 1,family = 'binomial',relax = TRUE)
-relaxed_best_lambda = relaxed_cv_model$lambda.min
+relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
 
+relaxed_best_lambda = relaxed_cv_model$lambda.min
+relaxed_best_lambda
 #plot cv model
-plot(relaxed_cv_model)
+plot(relaxed_cv_model,se.bands = FALSE)
 
 
 
 #lasso model
-relaxed_best_model = glmnet(train_expl,train_resp,alpha = 1, lambda = relaxed_best_lambda,family = 'binomial',relax = TRUE)
+relaxed_best_model = glmnet(train_expl,train_resp, lambda = relaxed_best_lambda,family = 'binomial',relax = TRUE)
 coef(relaxed_best_model,relaxed_best_lambda)
 
 relaxed_best_model
@@ -187,16 +188,26 @@ coefs = sort(abs(coefs), decreasing = F)
 coefs
 relax_var_imp = varImp(relaxed_best_model,lambda = relaxed_best_lambda, scale = FALSE)
 relax_var_imp
+
+#housing
+#loan
+#contact
+#default
+#poutcome
+#campaign
+
+
+
 ```
 
 
-```{r ASSESS MIDDLE MODEL}
+```{r ASSESS RELAXED LASSO MODEL}
 #assess lasso model
-assess.glmnet(relaxed_best_model,test_expl,test_resp, family = 'binomial',s = mid_best_lambda,relax = TRUE)
+assess.glmnet(relaxed_cv_model,test_expl,test_resp, family = 'binomial',s = relaxed_best_lambda,relax = TRUE)
 #return confusion matrix from lasso model
-confusion.glmnet(relaxed_best_model,test_expl,test_resp,family = 'binomial',s=mid_best_lambda,relax = TRUE)
+confusion.glmnet(relaxed_cv_model,test_expl,test_resp,family = 'binomial',s=relaxed_best_lambda,relax = TRUE)
 #plot roc curve from lasso model
-plot(roc.glmnet(relaxed_best_model,test_expl,test_resp,family = 'binomial',s=mid_best_lambda,relax = TRUE))
+plot(roc.glmnet(relaxed_cv_model,test_expl,test_resp,family = 'binomial',s=relaxed_best_lambda,relax = TRUE))
 
 ```
 
