@@ -35,13 +35,12 @@ df$loan = factor(df$loan)
 df$contact = factor(df$contact)
 df$poutcome = factor(df$poutcome)
 df$month = factor(df$month)
-
 #df$y = ifelse(df$y =="yes",1,0)
 ```
 
 ```{r Train/Test Split}
 
-## 75% of the sample size
+## 80% of the sample size
 smp_size <- floor(0.80 * nrow(df))
 
 ## set the seed to make your partition reproducible
@@ -74,6 +73,7 @@ test_expl = data.matrix(test_df[,1:16])
 ```{r find proportions of y}
 
 prop.table(table(df$y))
+prop.table(table(train_df$y))
 ```
 
 ```{r LASSO}
@@ -169,32 +169,24 @@ plot(roc.glmnet(mid_best_model,test_expl,test_resp,family = 'binomial',s=mid_bes
 
 #cv model
 relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
-
 relaxed_best_lambda = relaxed_cv_model$lambda.min
 relaxed_best_lambda
+
+
 #plot cv model
-plot(relaxed_cv_model,se.bands = FALSE)
+coef(relaxed_cv_model)
+plot(relaxed_cv_model)
 
 
+#use coefficients from cv for model
+#create train and test explinatory from cv coefficients
+lasso_train_expl = data.matrix(train_df[,c(3,4,6,7,8,9,12,13,14,15)])
+lasso_test_expl = data.matrix(test_df[,c(3,4,6,7,8,9,12,13,14,15)])
 
-#lasso model
-relaxed_best_model = glmnet(train_expl,train_resp, lambda = relaxed_best_lambda,family = 'binomial',relax = TRUE)
-coef(relaxed_best_model,relaxed_best_lambda)
+rlasso_cv_model = glmnet(lasso_train_expl,train_resp,family = 'binomial',s = relaxed_best_lambda)
+plot(rlasso_cv_model, label = TRUE)
 
-relaxed_best_model
 
-coefs = coef(relaxed_best_model)[,1]
-coefs = sort(abs(coefs), decreasing = F)
-coefs
-relax_var_imp = varImp(relaxed_best_model,lambda = relaxed_best_lambda, scale = FALSE)
-relax_var_imp
-
-#housing
-#loan
-#contact
-#default
-#poutcome
-#campaign
 
 
 
@@ -203,12 +195,10 @@ relax_var_imp
 
 ```{r ASSESS RELAXED LASSO MODEL}
 #assess lasso model
-assess.glmnet(relaxed_cv_model,test_expl,test_resp, family = 'binomial',s = relaxed_best_lambda,relax = TRUE)
+assess.glmnet(rlasso_cv_model,lasso_test_expl,test_resp, family = 'binomial',s = relaxed_best_lambda)
 #return confusion matrix from lasso model
-confusion.glmnet(relaxed_cv_model,test_expl,test_resp,family = 'binomial',s=relaxed_best_lambda,relax = TRUE)
+confusion.glmnet(rlasso_cv_model,lasso_test_expl,test_resp,family = 'binomial',s = relaxed_best_lambda)
 #plot roc curve from lasso model
-plot(roc.glmnet(relaxed_cv_model,test_expl,test_resp,family = 'binomial',s=relaxed_best_lambda,relax = TRUE))
-
-```
+plot(roc.glmnet(rlasso_cv_model,lasso_test_expl,test_resp,family = 'binomial',s = relaxed_best_lambda))
 
 ```
