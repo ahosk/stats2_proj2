@@ -1,0 +1,50 @@
+```{r Package Setup}
+library(tidyverse)
+library(ggplot2)
+```
+# # # # # # 
+```{r dataset}
+df <- read.csv(file.choose(), header = T, fileEncoding="UTF-8-BOM")
+df
+
+df$y <- as.factor(df$y)
+df$job = factor(df$job)
+df$marital = factor(df$marital)
+df$education = factor(df$education)
+df$default = factor(df$default)
+df$housing = factor(df$housing)
+df$loan = factor(df$loan)
+df$contact = factor(df$contact)
+df$poutcome = factor(df$poutcome)
+df$month = factor(df$month)
+```
+# # # # # # 
+```{r EDA}
+library(GGally)
+library(forcats)
+library(dplyr)
+
+valuecounts = df$y
+table(valuecounts)
+
+ggpairs(df,columns=c(1,6,12,14,15,17),aes(colour=y))
+
+p = ggplot(df,aes(x = fct_infreq(job), fill=y)) + 
+	geom_bar(stat = 'count') +
+  theme(axis.text.x=element_text(angle=90)) +
+  ggtitle("Proportions of Yes/No by Job Sector") +
+  xlab("Job Sector") +
+  ylab("Count")
+
+p + theme(axis.text.x=element_text(vjust=0.5))
+p <- p + guides(fill=guide_legend(title="Response"))
+
+ggplot(df, aes(x=age, y=duration, color=y)) +
+  geom_point() +
+  #geom_jitter() +
+  ggtitle("Relationship of Age vs. Call Duration - Group By Client Response") +
+  ylab("Duration (seconds)") +
+  xlab("Age") + 
+  labs(color='Response')
+
+```
