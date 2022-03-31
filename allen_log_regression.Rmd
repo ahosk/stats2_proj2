@@ -167,6 +167,7 @@ plot(roc.glmnet(mid_best_model,test_expl,test_resp,family = 'binomial',s=mid_bes
 
 ```{r RELAXED LASSO}
 
+
 #cv model
 relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
 relaxed_best_lambda = relaxed_cv_model$lambda.min
@@ -180,12 +181,16 @@ plot(relaxed_cv_model)
 
 #use coefficients from cv for model
 #create train and test explinatory from cv coefficients
-lasso_train_expl = data.matrix(train_df[,c(3,4,6,7,8,9,12,13,14,15)])
-lasso_test_expl = data.matrix(test_df[,c(3,4,6,7,8,9,12,13,14,15)])
+#lasso_train_expl = data.matrix(train_df[,c(4,7,8,9,12,13,14,15)])
+#lasso_test_expl = data.matrix(test_df[,c(4,7,8,9,12,13,14,15)])
 
-rlasso_cv_model = glmnet(lasso_train_expl,train_resp,family = 'binomial',s = relaxed_best_lambda)
-plot(rlasso_cv_model, label = TRUE)
+rlasso_pred = predict(rlasso_cv_model,test_expl,type = 'response')
+new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.5,'yes','no' ) ,levels = c('no','yes'))
+confusionMatrix(new_pred,test_resp)
 
+plot(new_pred,test_resp)
+
+glm
 
 
 
