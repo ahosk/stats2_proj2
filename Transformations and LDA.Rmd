@@ -121,15 +121,101 @@ clean %>% mutate(previous=1/previous)
 
 ```{r Mutate}
 
-## make relevant transformatins
+## make relevant transformations
 clean <- clean %>% mutate(balance=log(balance)) %>% filter(balance>=1) %>% mutate(duration=log(duration)) %>% filter(duration>=2)
 clean <- clean %>% filter(!is.infinite(balance)) %>% filter(!is.na(balance)) %>% filter(!is.infinite(duration)) %>% filter(!is.na(duration))
 
 
+```
 
 
+```{r train and test sets}
+
+num_clean <- select_if(clean, is.numeric)
+y_col<- clean$y
 
 
+num_clean <- cbind(num_clean, y_col)
+num_clean <- num_clean %>% mutate(y=y_col) %>% select(!y_col)
+
+set.seed(1)
+test_index <- sample(1:nrow(clean), size = 0.2*nrow(clean))
+test <- clean[test_index,]
+train<- clean[-test_index,]
+dim(test)
+dim(train)
+head(train)
+head(clean)
+
+##set y as factor
+train$y <- as.factor(train$y)
+test$y <- as.factor(test$y)
+
+
+```
+
+```{r balance train set}
+library(ROSE)
+##under sampling
+under_train <- ovun.sample(y~., data=train, method="under")
+under_train <- under_train$data
+table(under_train$y)
+under_train$y <- as.factor(under_train$y)
+head(under_train)
+
+#over sampling
+over_train <- ovun.sample(y~., data=train, method="over")
+over_train <- over_train$data
+table(over_train$y)
+
+#both
+both_train <- ovun.sample(y~., data=train, method="both")
+both_train <- both_train$data
+table(both_train$y)
+head(under_train)
+```
+
+
+```{r LDA}
+library(MASS)
+library(caret)
+
+#under sample
+under_lda <- lda(y~age+balance+day+duration, data=under_train)
+summary(under_lda)
+pred <- predict(under_lda, newdata=test[,-8])$class
+
+confusionMatrix(pred, test$y)
+
+## Accuracy: 72.2%
+## Sensitivity: 72%
+## Specificity: 73.6%
+
+#over sample
+over_lda <- lda(y~age+balance+day+duration, data=over_train)
+summary(over_lda)
+pred_over <- predict(over_lda, newdata=test[,-8])$class
+
+confusionMatrix(pred_over, test$y)
+
+
+### Accuracy: 71.75%
+### Sensitivity: 71.37%
+### Specificity: 74.29%
+
+# both sample
+both_lda <- lda(y~age+balance+day+duration, data=both_train)
+summary(both_lda)
+pred_both <- predict(both_lda, newdata=test[,-8])$class
+
+confusionMatrix(pred_both, test$y)
+
+### Accuracy: 72.18%
+### Sensitivity: 71.98%
+### Specificity: 73.47%
+
+
+### Under sample performed marginally better; however, given that only 4 numeric variables were used (only ones that met LDA assumptions), this method is not the best approach for this given dataset.
 ```
 
 
