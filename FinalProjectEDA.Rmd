@@ -4,9 +4,11 @@ library(ggplot2)
 ```
 # # # # # # 
 ```{r dataset}
+#reading in the data
 df <- read.csv(file.choose(), header = T, fileEncoding="UTF-8-BOM")
 df
 
+#changing categorical variables to factors
 df$y <- as.factor(df$y)
 df$job = factor(df$job)
 df$marital = factor(df$marital)
@@ -17,33 +19,41 @@ df$loan = factor(df$loan)
 df$contact = factor(df$contact)
 df$poutcome = factor(df$poutcome)
 df$month = factor(df$month)
+
+#changing the duration column from seconds to minutes
+df$duration<−df$duration/60
+df
 ```
 # # # # # # 
 ```{r EDA}
+#visualization dependencies
 library(GGally)
 library(forcats)
 library(dplyr)
 
+#a view of the yes and no counts for the response variable
 valuecounts = df$y
 table(valuecounts)
 
+#looking for correlations between variables
 ggpairs(df,columns=c(1,6,12,14,15,17),aes(colour=y))
 
+#bar chart of Yes/No proportions for reponse
 p = ggplot(df,aes(x = fct_infreq(job), fill=y)) + 
 	geom_bar(stat = 'count') +
   theme(axis.text.x=element_text(angle=90)) +
   ggtitle("Proportions of Yes/No by Job Sector") +
   xlab("Job Sector") +
   ylab("Count")
+p + theme(axis.text.x=element_text(vjust=0.5)) #Adjusting tick label positions
+p <- p + guides(fill=guide_legend(title="Response")) #Changing the legend title
 
-p + theme(axis.text.x=element_text(vjust=0.5))
-p <- p + guides(fill=guide_legend(title="Response"))
-
+#Scatter plot of Yes/No for Age vs. Duration
 ggplot(df, aes(x=age, y=duration, color=y)) +
   geom_point() +
   #geom_jitter() +
   ggtitle("Relationship of Age vs. Call Duration - Group By Client Response") +
-  ylab("Duration (seconds)") +
+  ylab("Duration (minutes)") +
   xlab("Age") + 
   labs(color='Response')
 
