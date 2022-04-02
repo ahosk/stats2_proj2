@@ -1,0 +1,142 @@
+---
+title: "Cleaning and LDA"
+author: "Joaquin Dominguez"
+date: "4/2/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r Cleaning}
+library(tidyverse)
+
+clean <-  df
+```
+
+
+```{r Age}
+##examining numeric variables
+##age
+hist(clean$age)
+head(clean)
+clean %>% ggplot(aes(y = y, x = factor(age), fill = y)) + geom_bar(stat='identity')
+
+## skewed right a little
+```
+
+
+```{r Balance}
+##balance
+hist(clean$balance)
+hist(log(clean$balance))
+summary(log(clean$balance))
+clean %>% ggplot(aes(x = y, y = log(balance))) + geom_boxplot()
+clean$balance <- log(clean$balance)
+
+clean$balance[!is.infinite(rowSums(clean)),]
+is.infinite(clean$balance)
+clean <- clean %>% filter(!is.infinite(balance)) %>% filter(!is.na(balance))
+clean %>% ggplot(aes(x = y, y = balance)) + geom_boxplot()
+clean <- clean %>% filter(balance>=1)
+
+
+
+## def log transform for balance
+
+```
+
+
+```{r day}
+###day
+### seems to be trending towards randomly distributed rather than normal, but it'll survive
+
+hist(clean$day)
+summary(clean$day)
+```
+
+
+```{r duration}
+## duration
+summary(clean$duration)
+hist(log(clean$duration))
+
+clean$duration <- log(clean$duration)
+summary(clean$duration)
+dim(clean)
+clean <- clean %>% filter(!is.infinite(duration)) %>% filter(!is.na(duration))
+hist(clean$duration)
+
+clean %>% ggplot(aes(x = y, y = duration)) + geom_boxplot()
+clean <- clean %>% filter(duration>=2)
+
+###log transformed duration and removed outliers (under 2) to improve skewness
+```
+
+
+```{r campaign}
+###campaign
+
+summary(clean$campaign)
+hist(1/(clean$campaign))
+
+## Impossible to have normal distribution, considering nature of variable, might be worth removing
+```
+
+
+```{r pdays}
+## pdays
+
+hist(sqrt(clean$pdays))
+
+clean %>% ggplot(aes(x=y, y = sqrt(pdays))) +geom_boxplot()
+
+clean %>% mutate(pdays=sqrt(pdays)) %>% mutate(pdays=coalesce(pdays,0)) %>% count(pdays)
+
+
+### sqrt is best transformation for pdays to approach normality, except it would 
+###remove about 30,000 observations ince, you guessed it, the sqrt of 0 is 0. 
+##Anyway, there are 30,000  observations with 0, so  highly unlikely this will be able
+### tell us anything about 'y'
+```
+
+
+```{r previous}
+hist(1/(clean$previous))
+
+clean %>% ggplot(aes(x=y, y=previous)) + geom_boxplot()
+
+##remove outlier
+clean <- clean %>% filter(previous<100)
+
+clean %>% mutate(previous=1/previous)
+
+###reciprocal transformation makes the most sense for previous variable, but even then, it's not really  normally distributed
+###might be worth removing,  especially, since the reason it makes the most sense is bc the 0 is removed,
+## due to the majority of observations being 0, thus 1/0= undefined (or in this case, infinity). Traash.
+```
+
+
+```{r Mutate}
+
+## make relevant transformatins
+clean <- clean %>% mutate(balance=log(balance)) %>% filter(balance>=1) %>% mutate(duration=log(duration)) %>% filter(duration>=2)
+clean <- clean %>% filter(!is.infinite(balance)) %>% filter(!is.na(balance)) %>% filter(!is.infinite(duration)) %>% filter(!is.na(duration))
+
+
+
+
+
+
+```
+
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
