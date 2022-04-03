@@ -154,7 +154,7 @@ head(train_expl)
 #use variables from cv
 
 
-#more complex uses different cuttoff 
+#more complex uses different cut-off 
 # creating a less "accurate model" but decreases the FNR as we want to determine who might default on a loan.
 rlasso_pred = predict(relaxed_cv_model,test_expl,type = 'response',s = relaxed_best_lambda)
 new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.10,'yes','no') ,levels = c('no','yes'))
