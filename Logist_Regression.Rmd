@@ -14,6 +14,9 @@ library(pROC)
 library(ROCR)
 library(MASS)
 library(ROSE)
+
+library(caret)
+library(leaps)
 ```
 
 ```{r used unlcean and unbalanced for simple linear regression}
@@ -104,7 +107,7 @@ prop.table(table(both_train$y))
 
 ```{r simple logistic regression}
 #create simple model
-slr = glm(y ~ ., data = df_simple, family = "binomial")
+slr = glm(y ~ ., data = train_simple, family = "binomial")
 summary(slr)
 
 #CI and Odds Ratio
@@ -117,6 +120,24 @@ slrPredictnew<-factor(ifelse(as.numeric(slrPredict)>.5,'yes','no' ) ,levels = c(
 confusionMatrix(slrPredictnew,test_simple$y)
 
 ```
+
+
+```{r FSR: Feature Selection Simple Model}
+# use full model for stepwise feature selection
+StepwiseFeature =step(slr,direction="both",trace=0)
+summary(StepwiseFeature)
+
+#stepwise feature selection model
+slr_fsr = glm(y ~ job+marital+education+balance+housing+loan+contact+day+month+duration+campaign+poutcome, family = 'binomial',data = test_simple)
+
+
+#predictions from stepwise output 
+slrPredict_fsr = predict(slr_fsr,newdata = test_simple,type = 'response')
+
+slrPredictnew_fsr<-factor(ifelse(as.numeric(slrPredict_fsr)>.5,'yes','no' ) ,levels = c('no','yes'))
+confusionMatrix(slrPredictnew_fsr,test_simple$y)
+```
+
 
 ```{r RELAXED LASSO: complex model}
 #cv model
