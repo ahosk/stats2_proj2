@@ -1,0 +1,173 @@
+---
+title: "Logistic_Regression"
+author: "Allen Hoskins"
+date: "4/3/2022"
+output: html_document
+---
+
+```{r load packages}
+
+library(glmnet)
+library(tidyverse)
+library(magrittr)
+library(pROC)
+library(ROCR)
+library(MASS)
+library(ROSE)
+library(caret)
+library(leaps)
+```
+
+```{r used unlcean and unbalanced for simple linear regression}
+#read in full data set
+df_simple = read.csv(file.choose())
+
+df_simple$y <- factor(df_simple$y)
+df_simple$job = factor(df_simple$job)
+df_simple$marital = factor(df_simple$marital)
+df_simple$education = factor(df_simple$education)
+df_simple$default = factor(df_simple$default)
+df_simple$housing = factor(df_simple$housing)
+df_simple$loan = factor(df_simple$loan)
+df_simple$contact = factor(df_simple$contact)
+df_simple$poutcome = factor(df_simple$poutcome)
+df_simple$month = factor(df_simple$month)
+
+#create test train split
+set.seed(1)
+simple_test_index <- sample(1:nrow(df_simple), size = 0.2*nrow(df_simple))
+test_simple <- df_simple[simple_test_index,]
+train_simple<- df_simple[-simple_test_index,]
+
+
+```
+
+```{r load Data and change character fields to factors: used for complex model}
+#using clean data set from GitHub
+df = read.csv(file.choose())
+head(df)
+
+df$y = as.factor(df$y)
+df$job = factor(df$job)
+df$marital = factor(df$marital)
+df$education = factor(df$education)
+df$default = factor(df$default)
+df$housing = factor(df$housing)
+df$loan = factor(df$loan)
+df$contact = factor(df$contact)
+df$poutcome = factor(df$poutcome)
+df$month = factor(df$month)
+
+```
+
+```{r create test/train for complex model: creates balanced data set}
+#create test train split
+set.seed(1)
+
+#balance train data set 
+
+both_train <- ovun.sample(y~., data=train, method="both")
+both_train <- both_train$data
+table(both_train$y)
+
+
+test_index <- sample(1:nrow(both_train), size = 0.2*nrow(both_train))
+test <- both_train[test_index,]
+train<- both_train[-test_index,]
+
+
+
+
+```
+
+```{r breaking response and explinatory for glmnet}
+
+#defining response variable
+
+train_resp = train$y
+test_resp = as.factor(test$y)
+
+#defining explanatory variables
+train_expl = data.matrix(train[,1:16])
+test_expl = data.matrix(test[,1:16])
+
+```
+
+```{r find proportions of y}
+
+#unclean data proportions
+prop.table(table(df_simple$y))
+prop.table(table(test_simple$y))
+
+#clean data proporation
+prop.table(table(df$y))
+prop.table(table(both_train$y))
+```
+
+```{r simple logistic regression}
+#create simple model
+slr = glm(y ~ ., data = train_simple, family = "binomial")
+summary(slr)
+
+#CI and Odds Ratio
+#exp(cbind(OR = coef(slr), confint(slr)))
+
+#predictions
+slrPredict = predict(slr,newdata = test_simple,type = 'response')
+
+slrPredictnew<-factor(ifelse(as.numeric(slrPredict)>.5,'yes','no' ) ,levels = c('no','yes'))
+confusionMatrix(slrPredictnew,test_simple$y)
+
+```
+
+
+```{r FSR: Feature Selection Simple Model}
+# use full model for stepwise feature selection
+StepwiseFeature =step(slr,direction="both",trace=0)
+summary(StepwiseFeature)
+
+#stepwise feature selection model
+slr_fsr = glm(y ~ job+marital+education+balance+housing+loan+contact+day+month+duration+campaign+poutcome, family = 'binomial',data = test_simple)
+
+
+#predictions from stepwise output 
+slrPredict_fsr = predict(slr_fsr,newdata = test_simple,type = 'response')
+
+slrPredictnew_fsr<-factor(ifelse(as.numeric(slrPredict_fsr)>.5,'yes','no' ) ,levels = c('no','yes'))
+confusionMatrix(slrPredictnew_fsr,test_simple$y)
+```
+
+
+```{r RELAXED LASSO: complex model}
+#cv model
+relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
+relaxed_best_lambda = relaxed_cv_model$lambda.min
+relaxed_best_lambda
+
+
+#plot cv model
+coef(relaxed_cv_model,lambda = relaxed_best_lambda)
+plot(relaxed_cv_model,lambda = relaxed_best_lambda)
+
+head(train_expl)
+#use variables from cv
+
+
+#more complex uses different cut-off 
+# creating a less "accurate model" but decreases the FNR as we want to determine who might default on a loan.
+rlasso_pred = predict(relaxed_cv_model,test_expl,type = 'response',s = relaxed_best_lambda)
+new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.10,'yes','no') ,levels = c('no','yes'))
+confusionMatrix(new_pred,test_resp)
+
+```
+
+
+```{r ROC of LASSO}
+
+log.roc<-roc(response=test_resp,predictor=rlasso_pred,levels=c("no","yes"))
+
+plot(log.roc,print.thres="best")
+auc = auc(log.roc)
+text(x = .4, y = .4,paste("AUC = ", round(auc,3), sep = ""))
+
+```
