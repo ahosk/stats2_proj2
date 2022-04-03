@@ -1,0 +1,122 @@
+---
+title: "Logistic_Regression"
+author: "Allen Hoskins"
+date: "4/3/2022"
+output: html_document
+---
+
+```{r load packages}
+
+library(glmnet)
+library(tidyverse)
+library(magrittr)
+library(pROC)
+library(ROCR)
+library(MASS)
+library(ROSE)
+```
+
+```{r load Data and change character fields to factors}
+#using clean data set from GitHub
+df = read.csv(file.choose())
+head(df)
+
+df$y <- as.factor(df$y)
+df$job = factor(df$job)
+df$marital = factor(df$marital)
+df$education = factor(df$education)
+df$default = factor(df$default)
+df$housing = factor(df$housing)
+df$loan = factor(df$loan)
+df$contact = factor(df$contact)
+df$poutcome = factor(df$poutcome)
+df$month = factor(df$month)
+```
+
+```{r create test/train}
+#create test train split
+set.seed(1)
+test_index <- sample(1:nrow(both_train), size = 0.2*nrow(both_train))
+test <- both_train[test_index,]
+train<- both_train[-test_index,]
+
+#balance train data set 
+
+both_train <- ovun.sample(y~., data=train, method="both")
+both_train <- both_train$data
+table(both_train$y)
+
+
+```
+
+```{r breaking response and explinatory}
+
+#defining response variable
+
+train_resp = train$y
+test_resp = test$y
+
+#defining explanatory variables
+train_expl = data.matrix(train[,1:16])
+test_expl = data.matrix(test[,1:16])
+
+
+
+```
+
+```{r find proportions of y}
+
+prop.table(table(df$y))
+prop.table(table(both_train$y))
+```
+
+```{r simple logistic regression}
+#create simple model
+slr = glm(y ~ ., data = both_train, family = "binomial")
+summary(slr)
+
+#CI and Odds Ratio
+exp(cbind(OR = coef(slr), confint(slr)))
+
+#predictions
+slrPredict = predict(slr,newdata = test,type = 'response')
+
+slrPredictnew<-factor(ifelse(as.numeric(slrPredict)>.5,'yes','no' ) ,levels = c('no','yes'))
+confusionMatrix(slrPredictnew,test$y)
+
+```
+
+```{r RELAXED LASSO}
+#cv model
+relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
+relaxed_best_lambda = relaxed_cv_model$lambda.min
+relaxed_best_lambda
+
+
+#plot cv model
+coef(relaxed_cv_model,lambda = relaxed_best_lambda)
+plot(relaxed_cv_model,lambda = relaxed_best_lambda)
+
+head(train_expl)
+#use variables from cv
+
+
+#more complex uses different cuttoff 
+# creating a less "accurate model" but decreases the FNR as we want to determine who might default on a loan.
+rlasso_pred = predict(relaxed_cv_model,test_expl,type = 'response',s = relaxed_best_lambda)
+new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.10,'yes','no' ) ,levels = c('no','yes'))
+confusionMatrix(new_pred,test_resp)
+
+```
+
+
+```{r ROC , echo = FALSE}
+
+log.roc<-roc(response=test_resp,predictor=rlasso_pred,levels=c("no","yes"))
+
+plot(log.roc,print.thres="best")
+auc = auc(log.roc)
+text(x = .40, y = .4,paste("AUC = ", round(auc,3), sep = ""))
+
+
+```
