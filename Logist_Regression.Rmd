@@ -16,7 +16,30 @@ library(MASS)
 library(ROSE)
 ```
 
-```{r load Data and change character fields to factors}
+```{r used unlcean and unbalanced for simple linear regression}
+df_simple = read.csv(file.choose())
+
+df_simple$y <- as.factor(df_simple$y)
+df_simple$job = factor(df_simple$job)
+df_simple$marital = factor(df_simple$marital)
+df_simple$education = factor(df_simple$education)
+df_simple$default = factor(df_simple$default)
+df_simple$housing = factor(df_simple$housing)
+df_simple$loan = factor(df_simple$loan)
+df_simple$contact = factor(df_simple$contact)
+df_simple$poutcome = factor(df_simple$poutcome)
+df_simple$month = factor(df_simple$month)
+
+#create test train split
+set.seed(1)
+simple_test_index <- sample(1:nrow(df_simple), size = 0.2*nrow(df_simple))
+test_simple <- df_simple[simple_test_index,]
+train_simple<- df_simple[-simple_test_index,]
+
+
+```
+
+```{r load Data and change character fields to factors}{used for complex model}
 #using clean data set from GitHub
 df = read.csv(file.choose())
 head(df)
@@ -33,12 +56,9 @@ df$poutcome = factor(df$poutcome)
 df$month = factor(df$month)
 ```
 
-```{r create test/train}
+```{r create test/train for complex model}{creates balanced data set}
 #create test train split
 set.seed(1)
-test_index <- sample(1:nrow(both_train), size = 0.2*nrow(both_train))
-test <- both_train[test_index,]
-train<- both_train[-test_index,]
 
 #balance train data set 
 
@@ -47,9 +67,16 @@ both_train <- both_train$data
 table(both_train$y)
 
 
+test_index <- sample(1:nrow(both_train), size = 0.2*nrow(both_train))
+test <- both_train[test_index,]
+train<- both_train[-test_index,]
+
+
+
+
 ```
 
-```{r breaking response and explinatory}
+```{r breaking response and explinatory for glmnet}
 
 #defining response variable
 
@@ -61,32 +88,36 @@ train_expl = data.matrix(train[,1:16])
 test_expl = data.matrix(test[,1:16])
 
 
-
 ```
 
 ```{r find proportions of y}
 
+#unclean data proportions
+prop.table(table(df_simple$y))
+prop.table(table(test_simple$y))
+
+#clean data proporation
 prop.table(table(df$y))
 prop.table(table(both_train$y))
 ```
 
 ```{r simple logistic regression}
 #create simple model
-slr = glm(y ~ ., data = both_train, family = "binomial")
+slr = glm(y ~ ., data = df_simple, family = "binomial")
 summary(slr)
 
 #CI and Odds Ratio
-exp(cbind(OR = coef(slr), confint(slr)))
+#exp(cbind(OR = coef(slr), confint(slr)))
 
 #predictions
-slrPredict = predict(slr,newdata = test,type = 'response')
+slrPredict = predict(slr,newdata = test_simple,type = 'response')
 
 slrPredictnew<-factor(ifelse(as.numeric(slrPredict)>.5,'yes','no' ) ,levels = c('no','yes'))
-confusionMatrix(slrPredictnew,test$y)
+confusionMatrix(slrPredictnew,test_simple$y)
 
 ```
 
-```{r RELAXED LASSO}
+```{r RELAXED LASSO}{complex model}
 #cv model
 relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
 relaxed_best_lambda = relaxed_cv_model$lambda.min
@@ -117,6 +148,5 @@ log.roc<-roc(response=test_resp,predictor=rlasso_pred,levels=c("no","yes"))
 plot(log.roc,print.thres="best")
 auc = auc(log.roc)
 text(x = .40, y = .4,paste("AUC = ", round(auc,3), sep = ""))
-
 
 ```
