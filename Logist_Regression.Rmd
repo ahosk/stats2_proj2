@@ -17,6 +17,7 @@ library(ROSE)
 ```
 
 ```{r used unlcean and unbalanced for simple linear regression}
+#read in full data set
 df_simple = read.csv(file.choose())
 
 df_simple$y <- as.factor(df_simple$y)
@@ -135,7 +136,7 @@ head(train_expl)
 #more complex uses different cuttoff 
 # creating a less "accurate model" but decreases the FNR as we want to determine who might default on a loan.
 rlasso_pred = predict(relaxed_cv_model,test_expl,type = 'response',s = relaxed_best_lambda)
-new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.10,'yes','no' ) ,levels = c('no','yes'))
+new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.10,'yes','no') ,levels = c('no','yes'))
 confusionMatrix(new_pred,test_resp)
 
 ```
