@@ -39,7 +39,7 @@ train_simple<- df_simple[-simple_test_index,]
 
 ```
 
-```{r load Data and change character fields to factors}{used for complex model}
+```{r load Data and change character fields to factors: used for complex model}
 #using clean data set from GitHub
 df = read.csv(file.choose())
 head(df)
@@ -56,7 +56,7 @@ df$poutcome = factor(df$poutcome)
 df$month = factor(df$month)
 ```
 
-```{r create test/train for complex model}{creates balanced data set}
+```{r create test/train for complex model: creates balanced data set}
 #create test train split
 set.seed(1)
 
@@ -117,7 +117,7 @@ confusionMatrix(slrPredictnew,test_simple$y)
 
 ```
 
-```{r RELAXED LASSO}{complex model}
+```{r RELAXED LASSO: complex model}
 #cv model
 relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
 relaxed_best_lambda = relaxed_cv_model$lambda.min
@@ -141,7 +141,7 @@ confusionMatrix(new_pred,test_resp)
 ```
 
 
-```{r ROC , echo = FALSE}
+```{r ROC of LASSO}
 
 log.roc<-roc(response=test_resp,predictor=rlasso_pred,levels=c("no","yes"))
 
