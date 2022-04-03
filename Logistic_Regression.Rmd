@@ -14,7 +14,6 @@ library(pROC)
 library(ROCR)
 library(MASS)
 library(ROSE)
-
 library(caret)
 library(leaps)
 ```
@@ -23,7 +22,7 @@ library(leaps)
 #read in full data set
 df_simple = read.csv(file.choose())
 
-df_simple$y <- as.factor(df_simple$y)
+df_simple$y <- factor(df_simple$y)
 df_simple$job = factor(df_simple$job)
 df_simple$marital = factor(df_simple$marital)
 df_simple$education = factor(df_simple$education)
@@ -48,7 +47,7 @@ train_simple<- df_simple[-simple_test_index,]
 df = read.csv(file.choose())
 head(df)
 
-df$y <- as.factor(df$y)
+df$y = as.factor(df$y)
 df$job = factor(df$job)
 df$marital = factor(df$marital)
 df$education = factor(df$education)
@@ -58,6 +57,7 @@ df$loan = factor(df$loan)
 df$contact = factor(df$contact)
 df$poutcome = factor(df$poutcome)
 df$month = factor(df$month)
+
 ```
 
 ```{r create test/train for complex model: creates balanced data set}
@@ -85,12 +85,11 @@ train<- both_train[-test_index,]
 #defining response variable
 
 train_resp = train$y
-test_resp = test$y
+test_resp = as.factor(test$y)
 
 #defining explanatory variables
 train_expl = data.matrix(train[,1:16])
 test_expl = data.matrix(test[,1:16])
-
 
 ```
 
@@ -169,6 +168,6 @@ log.roc<-roc(response=test_resp,predictor=rlasso_pred,levels=c("no","yes"))
 
 plot(log.roc,print.thres="best")
 auc = auc(log.roc)
-text(x = .40, y = .4,paste("AUC = ", round(auc,3), sep = ""))
+text(x = .4, y = .4,paste("AUC = ", round(auc,3), sep = ""))
 
 ```
