@@ -217,6 +217,54 @@ confusionMatrix(pred_both, test$y)
 
 ### Under sample performed marginally better; however, given that only 4 numeric variables were used (only ones that met LDA assumptions), this method is not the best approach for this given dataset.
 ```
+```{r Random Forest}
+library(randomForest)
+
+## unbalanced data
+summary(clean)
+
+rf <- randomForest(y~., data=train)
+pred_rf <- predict(rf, newdata = test[-17])
+confusionMatrix(pred_rf, test$y)
+
+### Accuracy: 89.68%
+### Sensitivity: 95.82%
+### Specificity: 48.88%
+
+
+### balanced data
+### under sampling
+
+under_rf <- randomForest(y~., data=under_train)
+pred_urf <- predict(under_rf, newdata = test[-17])
+confusionMatrix(pred_urf, test$y)
+
+### Accuracy: 82.89%
+### Sensitivity: 81.85%
+### Specificity: 89.80%
+
+### over sample
+
+over_rf <- randomForest(y~., data=over_train)
+pred_orf <- predict(over_rf, newdata = test[-17])
+confusionMatrix(pred_orf, test$y)
+
+
+### Accuracy: 89.65%
+### Sensitivity: 93.79%
+### Specificity: 62.14%
+
+### both sample
+
+both_rf <- randomForest(y~., data=both_train)
+pred_brf <- predict(both_rf, newdata = test[-17])
+confusionMatrix(pred_brf, test$y)
+
+### Accuracy: 87.77%
+### Sensitivity: 89.43%
+### Specificity: 76.73%
+
+```
 
 
 You can also embed plots, for example:
