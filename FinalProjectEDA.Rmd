@@ -35,10 +35,10 @@ library(dplyr)
 valuecounts = df$y
 table(valuecounts)
 
-#looking for correlations between variables
+#looking for correlations between continous variables
 ggpairs(df,columns=c(1,6,12,14,15,17),aes(colour=y))
 
-#bar chart of Yes/No proportions for reponse
+#bar chart of Yes/No proportions for response
 p = ggplot(df,aes(x = fct_infreq(job), fill=y)) + 
 	geom_bar(stat = 'count') +
   theme(axis.text.x=element_text(angle=90)) +
@@ -48,6 +48,17 @@ p = ggplot(df,aes(x = fct_infreq(job), fill=y)) +
 p + theme(axis.text.x=element_text(vjust=0.5)) #Adjusting tick label positions
 p <- p + guides(fill=guide_legend(title="Response")) #Changing the legend title
 
+#bar chart of Yes/No proportions by whether or not they have a personal loan already
+p2 = ggplot(df,aes(x = fct_infreq(loan), fill=y)) + 
+	geom_bar(stat = 'count') +
+  theme(axis.text.x=element_text(angle=90)) +
+  ggtitle("Proportions of Yes/No by Loan") +
+  xlab("Loan") +
+  ylab("Count")
+p2 + theme(axis.text.x=element_text(vjust=0.5)) #Adjusting tick label positions
+pnew <- p2 + guides(fill=guide_legend(title="Response")) #Changing the legend title
+pnew
+
 #Scatter plot of Yes/No for Age vs. Duration
 ggplot(df, aes(x=age, y=duration, color=y)) +
   geom_point() +
@@ -56,5 +67,13 @@ ggplot(df, aes(x=age, y=duration, color=y)) +
   ylab("Duration (minutes)") +
   xlab("Age") + 
   labs(color='Response')
+
+#Summary statistics of continuous variables
+t(aggregate(balance~y,data=df,summary))
+t(aggregate(age~y,data=df,summary))
+t(aggregate(previous~y,data=df,summary))
+t(aggregate(duration~y,data=df,summary))
+t(aggregate(campaign~y,data=df,summary))
+t(aggregate(pdays~y,data=df,summary))
 
 ```
