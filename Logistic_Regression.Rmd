@@ -66,16 +66,13 @@ set.seed(1)
 
 #balance train data set 
 
+test_index <- sample(1:nrow(df), size = 0.2*nrow(df))
+test <- df[test_index,]
+train<- df[-test_index,]
+
 both_train <- ovun.sample(y~., data=train, method="both")
 both_train <- both_train$data
 table(both_train$y)
-
-
-test_index <- sample(1:nrow(both_train), size = 0.2*nrow(both_train))
-test <- both_train[test_index,]
-train<- both_train[-test_index,]
-
-
 
 
 ```
@@ -96,11 +93,17 @@ test_expl = data.matrix(test[,1:16])
 ```{r find proportions of y}
 
 #unclean data proportions
+writeLines("Proportion of No to Yes in Orignial Data")
 prop.table(table(df_simple$y))
+writeLines('')
+writeLines("Proportion of No to Yes in Test Split from Original Data")
 prop.table(table(test_simple$y))
 
 #clean data proporation
+writeLines("Proportion of No to Yes in Clean/Transformed Data")
 prop.table(table(df$y))
+writeLines('')
+writeLines("Proportion of No to Yes in Clean/Transformed Data with Balancing")
 prop.table(table(both_train$y))
 ```
 
@@ -110,10 +113,16 @@ slr = glm(y ~ ., data = train_simple, family = "binomial")
 summary(slr)
 
 #CI and Odds Ratio
-#exp(cbind(OR = coef(slr), confint(slr)))
+exp(cbind(OR = coef(slr), confint(slr)))
 
 #predictions
 slrPredict = predict(slr,newdata = test_simple,type = 'response')
+
+plot(slrPredict,
+     col = test_simple$y,
+     main = 'Simple Log Regression Predictions',
+     ylab = 'Prediction',
+     xlab = 'Data Index')
 
 slrPredictnew<-factor(ifelse(as.numeric(slrPredict)>.5,'yes','no' ) ,levels = c('no','yes'))
 confusionMatrix(slrPredictnew,test_simple$y)
@@ -132,6 +141,12 @@ slr_fsr = glm(y ~ job+marital+education+balance+housing+loan+contact+day+month+d
 
 #predictions from stepwise output 
 slrPredict_fsr = predict(slr_fsr,newdata = test_simple,type = 'response')
+
+plot(slrPredict_fsr,
+     col = test_simple$y,
+     main = 'Simple Log Regression Predictions: Stepwise',
+     ylab = 'Prediction',
+     xlab = 'Data Index')
 
 slrPredictnew_fsr<-factor(ifelse(as.numeric(slrPredict_fsr)>.5,'yes','no' ) ,levels = c('no','yes'))
 confusionMatrix(slrPredictnew_fsr,test_simple$y)
@@ -156,7 +171,13 @@ head(train_expl)
 #more complex uses different cut-off 
 # creating a less "accurate model" but decreases the FNR as we want to determine who might default on a loan.
 rlasso_pred = predict(relaxed_cv_model,test_expl,type = 'response',s = relaxed_best_lambda)
-new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.10,'yes','no') ,levels = c('no','yes'))
+
+plot(rlasso_pred,col = test_resp,
+     main = 'Log Regression Predictions: Relaxed CV LASSO',
+     ylab = 'Prediction',
+     xlab = 'Data Index')
+#use .1 for cut-offf
+new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.1,'yes','no') ,levels = c('no','yes'))
 confusionMatrix(new_pred,test_resp)
 
 ```
