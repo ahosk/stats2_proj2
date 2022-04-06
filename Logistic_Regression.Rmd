@@ -16,6 +16,9 @@ library(MASS)
 library(ROSE)
 library(caret)
 library(leaps)
+library(sjPlot)
+library(sjlabelled)
+library(sjmisc)
 ```
 
 ```{r used unlcean and unbalanced for simple linear regression}
@@ -127,6 +130,11 @@ plot(slrPredict,
 slrPredictnew<-factor(ifelse(as.numeric(slrPredict)>.5,'yes','no' ) ,levels = c('no','yes'))
 confusionMatrix(slrPredictnew,test_simple$y)
 
+#Pearson Chi^2 Test
+sum(residuals(slr, type = "pearson")^2)
+
+#Plotting Odds Ratios
+plot_model(slr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR')
 ```
 
 
@@ -150,6 +158,12 @@ plot(slrPredict_fsr,
 
 slrPredictnew_fsr<-factor(ifelse(as.numeric(slrPredict_fsr)>.5,'yes','no' ) ,levels = c('no','yes'))
 confusionMatrix(slrPredictnew_fsr,test_simple$y)
+
+#Pearson Chi^2 Test
+sum(residuals(slr_fsr, type = "pearson")^2)
+
+#Plotting Odds Ratio
+plot_model(slr_fsr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables:Stepwise LR')
 ```
 
 
@@ -159,7 +173,7 @@ relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = T
 relaxed_best_lambda = relaxed_cv_model$lambda.min
 relaxed_best_lambda
 
-
+plot(relaxed_cv_model)
 #plot cv model
 coef(relaxed_cv_model,lambda = relaxed_best_lambda)
 plot(relaxed_cv_model,lambda = relaxed_best_lambda)
@@ -180,6 +194,10 @@ plot(rlasso_pred,col = test_resp,
 new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.1,'yes','no') ,levels = c('no','yes'))
 confusionMatrix(new_pred,test_resp)
 
+
+#Pearson Chi^2 Test
+sum(residuals(relaxed_cv_model, type = "pearson")^2)
+
 ```
 
 
@@ -190,5 +208,15 @@ log.roc<-roc(response=test_resp,predictor=rlasso_pred,levels=c("no","yes"))
 plot(log.roc,print.thres="best")
 auc = auc(log.roc)
 text(x = .4, y = .4,paste("AUC = ", round(auc,3), sep = ""))
+
+```
+
+```{r ANOVA SLR vs Rleaxed LASSO}
+
+anova(slr,relaxed_cv_model, test = "Chisq",class(relaxed_cv_model))
+
+
+
+
 
 ```
