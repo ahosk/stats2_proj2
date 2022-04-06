@@ -48,17 +48,6 @@ p = ggplot(df,aes(x = fct_infreq(job), fill=y)) +
 p + theme(axis.text.x=element_text(vjust=0.5)) #Adjusting tick label positions
 p <- p + guides(fill=guide_legend(title="Response")) #Changing the legend title
 
-#bar chart of Yes/No proportions by whether or not they have a personal loan already
-p2 = ggplot(df,aes(x = fct_infreq(loan), fill=y)) + 
-	geom_bar(stat = 'count') +
-  theme(axis.text.x=element_text(angle=90)) +
-  ggtitle("Proportions of Yes/No by Loan") +
-  xlab("Loan") +
-  ylab("Count")
-p2 + theme(axis.text.x=element_text(vjust=0.5)) #Adjusting tick label positions
-pnew <- p2 + guides(fill=guide_legend(title="Response")) #Changing the legend title
-pnew
-
 #Scatter plot of Yes/No for Age vs. Duration
 ggplot(df, aes(x=age, y=duration, color=y)) +
   geom_point() +
@@ -75,5 +64,28 @@ t(aggregate(previous~y,data=df,summary))
 t(aggregate(duration~y,data=df,summary))
 t(aggregate(campaign~y,data=df,summary))
 t(aggregate(pdays~y,data=df,summary))
+```
 
+```{r Additional EDA}
+
+#histogram of age
+age_vizz = ggplot(df, aes(x = age))
+age_vizz + geom_density(fill = "#377eb8", alpha=0.6) +
+  geom_vline(aes(xintercept = mean(age)), 
+             linetype = "dashed", size = 0.6,
+             color = "#FC4E07") +
+  ylab("Frequency") +
+  ggtitle("Distribution of Age") +
+  xlab("Age")
+
+#bar chart of Yes/No proportions by whether or not they have a personal loan already
+p2 = ggplot(df,aes(x = fct_infreq(loan), fill=y)) + 
+	geom_bar(stat = 'count') +
+  theme(axis.text.x=element_text(angle=90)) +
+  ggtitle("Proportions of Yes/No by Loan") +
+  xlab("Loan") +
+  ylab("Count")
+p2 + theme(axis.text.x=element_text(vjust=0.5)) #Adjusting tick label positions
+pnew <- p2 + guides(fill=guide_legend(title="Response")) #Changing the legend title
+pnew
 ```
