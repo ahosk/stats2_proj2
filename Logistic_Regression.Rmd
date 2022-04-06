@@ -5,7 +5,13 @@ date: "4/3/2022"
 output: html_document
 ---
 
-```{r load packages, message = FALSE}
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+
+```{r load packages}
 
 library(glmnet)
 library(tidyverse)
@@ -49,7 +55,7 @@ train_simple<- df_simple[-simple_test_index,]
 ```{r load Data and change character fields to factors: used for complex model}
 #using clean data set from GitHub
 df = read.csv('./clean.csv')
-head(df)
+#head(df)
 
 #converting to factors
 df$y = as.factor(df$y)
@@ -179,12 +185,11 @@ relaxed_best_lambda = relaxed_cv_model$lambda.min
 coef(relaxed_cv_model,lambda = relaxed_best_lambda)
 plot(relaxed_cv_model,lambda = relaxed_best_lambda)
 
-head(train_expl)
+#head(train_expl)
+
 #use variables from cv
-
-
 #more complex uses different cut-off 
-# creating a less "accurate model" but decreases the FNR as we want to determine who might default on a loan.
+#creating a less "accurate model" but decreases the FNR as we want to determine who might default on a loan.
 rlasso_pred = predict(relaxed_cv_model,test_expl,type = 'response',s = relaxed_best_lambda)
 
 plot(rlasso_pred,col = test_resp,
