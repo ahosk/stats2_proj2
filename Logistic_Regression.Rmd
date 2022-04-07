@@ -151,7 +151,7 @@ plot_model(slr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory V
 ```{r simple logistic regression:Clean Data set}
 #create simple model
 slr_clean = glm(y ~ ., data = train, family = "binomial")
-summary(slr)
+summary(slr_clean)
 
 #CI and Odds Ratio
 exp(cbind(OR = coef(slr_clean), confint(slr_clean)))
@@ -175,12 +175,6 @@ sum(residuals(slr_clean, type = "pearson")^2)
 
 #Plotting Odds Ratios
 plot_model(slr_clean,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR')
-```
-
-```{r Compare Clean Simple to Unclean Simple}
-
-anova(slr_fsr,slr, test = "Chisq",class(relaxed_cv_model))
-
 ```
 
 ```{r FSR: Feature Selection Simple Model}
@@ -211,6 +205,12 @@ exp(cbind(OR = coef(slr_fsr), confint(slr_fsr)))
 
 #Plotting Odds Ratio
 plot_model(slr_fsr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables:Stepwise LR')
+```
+
+```{r Compare Clean Simple to Unclean Simple}
+
+anova(slr_fsr,slr_clean, test = "Chisq",class(slr_clean))
+
 ```
 
 ```{r RELAXED LASSO: complex model}
