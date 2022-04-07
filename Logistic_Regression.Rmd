@@ -25,6 +25,7 @@ library(leaps)
 library(sjPlot)
 library(sjlabelled)
 library(sjmisc)
+
 ```
 
 ```{r used unlcean and unbalanced for simple linear regression}
@@ -212,7 +213,6 @@ exp(cbind(OR = coef(slr_fsr), confint(slr_fsr)))
 plot_model(slr_fsr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables:Stepwise LR')
 ```
 
-
 ```{r RELAXED LASSO: complex model}
 #cv model
 relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
@@ -239,7 +239,6 @@ new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.1,'yes','no') ,levels = c('no',
 confusionMatrix(new_pred,test_resp)
 
 ```
-
 
 ```{r ROC of LASSO}
 
