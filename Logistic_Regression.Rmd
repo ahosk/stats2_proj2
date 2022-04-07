@@ -7,7 +7,9 @@ output: html_document
 
 
 ```{r setup, include=FALSE} 
+
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
 ```
 
 
@@ -50,7 +52,6 @@ simple_test_index <- sample(1:nrow(df_simple), size = 0.2*nrow(df_simple))
 test_simple <- df_simple[simple_test_index,]
 train_simple<- df_simple[-simple_test_index,]
 
-
 ```
 
 ```{r load Data and change character fields to factors: used for complex model}
@@ -77,7 +78,6 @@ df$month = factor(df$month)
 set.seed(1)
 
 #balance train data set 
-
 test_index <- sample(1:nrow(df), size = 0.2*nrow(df))
 test <- df[test_index,]
 train<- df[-test_index,]
@@ -86,13 +86,11 @@ both_train <- ovun.sample(y~., data=train, method="both")
 both_train <- both_train$data
 table(both_train$y)
 
-
 ```
 
 ```{r breaking response and explinatory for glmnet}
 
 #defining response variable
-
 train_resp = train$y
 test_resp = as.factor(test$y)
 
@@ -117,6 +115,7 @@ prop.table(table(df$y))
 writeLines('')
 writeLines("Proportion of No to Yes in Clean/Transformed Data with Balancing")
 prop.table(table(both_train$y))
+
 ```
 
 ```{r simple logistic regression}
@@ -146,9 +145,11 @@ sum(residuals(slr, type = "pearson")^2)
 
 #Plotting Odds Ratios
 plot_model(slr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR')
+
 ```
 
 ```{r simple logistic regression:Clean Data set}
+
 #create simple model
 slr_clean = glm(y ~ ., data = train, family = "binomial")
 summary(slr_clean)
@@ -174,10 +175,12 @@ confusionMatrix(slrPredictnew_clean,test$y)
 sum(residuals(slr_clean, type = "pearson")^2)
 
 #Plotting Odds Ratios
-plot_model(slr_clean,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR')
+plot_model(slr_clean,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR Clean')
+
 ```
 
 ```{r FSR: Feature Selection Simple Model}
+
 # use full model for stepwise feature selection
 StepwiseFeature =step(slr_clean,direction="both",trace=0)
 summary(StepwiseFeature)
@@ -205,6 +208,7 @@ exp(cbind(OR = coef(slr_fsr), confint(slr_fsr)))
 
 #Plotting Odds Ratio
 plot_model(slr_fsr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables:Stepwise LR')
+
 ```
 
 ```{r Compare Clean Simple to Unclean Simple}
@@ -214,6 +218,7 @@ anova(slr_fsr,slr_clean, test = "Chisq",class(slr_clean))
 ```
 
 ```{r RELAXED LASSO: complex model}
+
 #cv model
 relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
 relaxed_best_lambda = relaxed_cv_model$lambda.min
@@ -252,6 +257,6 @@ text(x = .4, y = .4,paste("AUC = ", round(auc,3), sep = ""))
 
 ```{r ANOVA SLR vs Rleaxed LASSO}
 
-anova(slr_clean,relaxed_cv_model, test = "Chisq",class(relaxed_cv_model))
+anova(slr_fsr,relaxed_cv_model, test = "Chisq",class(relaxed_cv_model))
 
 ```
