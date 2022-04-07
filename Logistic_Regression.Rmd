@@ -1,9 +1,17 @@
 ---
-title: "Logistic_Regression"
+title: "Logistic Regression: SLR, Stepwise, and CV Relaxed LASSO"
 author: "Allen Hoskins"
 date: "4/3/2022"
 output: html_document
 ---
+
+
+```{r setup, include=FALSE} 
+
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+```
+
 
 ```{r load packages}
 
@@ -16,12 +24,17 @@ library(MASS)
 library(ROSE)
 library(caret)
 library(leaps)
+library(sjPlot)
+library(sjlabelled)
+library(sjmisc)
+
 ```
 
 ```{r used unlcean and unbalanced for simple linear regression}
 #read in full data set
-df_simple = read.csv(file.choose())
+df_simple = read.csv('./bank-full.csv')
 
+#Converting to Factors
 df_simple$y <- factor(df_simple$y)
 df_simple$job = factor(df_simple$job)
 df_simple$marital = factor(df_simple$marital)
@@ -39,14 +52,14 @@ simple_test_index <- sample(1:nrow(df_simple), size = 0.2*nrow(df_simple))
 test_simple <- df_simple[simple_test_index,]
 train_simple<- df_simple[-simple_test_index,]
 
-
 ```
 
 ```{r load Data and change character fields to factors: used for complex model}
 #using clean data set from GitHub
-df = read.csv(file.choose())
-head(df)
+df = read.csv('./clean.csv')
+#head(df)
 
+#converting to factors
 df$y = as.factor(df$y)
 df$job = factor(df$job)
 df$marital = factor(df$marital)
@@ -65,25 +78,19 @@ df$month = factor(df$month)
 set.seed(1)
 
 #balance train data set 
+test_index <- sample(1:nrow(df), size = 0.2*nrow(df))
+test <- df[test_index,]
+train<- df[-test_index,]
 
 both_train <- ovun.sample(y~., data=train, method="both")
 both_train <- both_train$data
 table(both_train$y)
-
-
-test_index <- sample(1:nrow(both_train), size = 0.2*nrow(both_train))
-test <- both_train[test_index,]
-train<- both_train[-test_index,]
-
-
-
 
 ```
 
 ```{r breaking response and explinatory for glmnet}
 
 #defining response variable
-
 train_resp = train$y
 test_resp = as.factor(test$y)
 
@@ -96,12 +103,19 @@ test_expl = data.matrix(test[,1:16])
 ```{r find proportions of y}
 
 #unclean data proportions
+writeLines("Proportion of No to Yes in Orignial Data")
 prop.table(table(df_simple$y))
+writeLines('')
+writeLines("Proportion of No to Yes in Test Split from Original Data")
 prop.table(table(test_simple$y))
 
 #clean data proporation
+writeLines("Proportion of No to Yes in Clean/Transformed Data")
 prop.table(table(df$y))
+writeLines('')
+writeLines("Proportion of No to Yes in Clean/Transformed Data with Balancing")
 prop.table(table(both_train$y))
+
 ```
 
 ```{r simple logistic regression}
@@ -110,57 +124,126 @@ slr = glm(y ~ ., data = train_simple, family = "binomial")
 summary(slr)
 
 #CI and Odds Ratio
-#exp(cbind(OR = coef(slr), confint(slr)))
+exp(cbind(OR = coef(slr), confint(slr)))
 
 #predictions
 slrPredict = predict(slr,newdata = test_simple,type = 'response')
 
+
+plot(slrPredict,
+     col = test_simple$y,
+     main = 'Simple Log Regression Predictions',
+     ylab = 'Prediction',
+     xlab = 'Data Index')
+
+
 slrPredictnew<-factor(ifelse(as.numeric(slrPredict)>.5,'yes','no' ) ,levels = c('no','yes'))
 confusionMatrix(slrPredictnew,test_simple$y)
 
+#Pearson Chi^2 Test
+sum(residuals(slr, type = "pearson")^2)
+
+#Plotting Odds Ratios
+plot_model(slr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR')
+
 ```
 
+```{r simple logistic regression:Clean Data set}
+
+#create simple model
+slr_clean = glm(y ~ ., data = train, family = "binomial")
+summary(slr_clean)
+
+#CI and Odds Ratio
+exp(cbind(OR = coef(slr_clean), confint(slr_clean)))
+
+#predictions
+slrPredict_clean = predict(slr_clean,newdata = test,type = 'response')
+
+
+plot(slrPredict_clean,
+     col = test$y,
+     main = 'Simple Log Regression Predictions',
+     ylab = 'Prediction',
+     xlab = 'Data Index')
+
+
+slrPredictnew_clean<-factor(ifelse(as.numeric(slrPredict_clean)>.5,'yes','no' ) ,levels = c('no','yes'))
+confusionMatrix(slrPredictnew_clean,test$y)
+
+#Pearson Chi^2 Test
+sum(residuals(slr_clean, type = "pearson")^2)
+
+#Plotting Odds Ratios
+plot_model(slr_clean,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR Clean')
+
+```
 
 ```{r FSR: Feature Selection Simple Model}
+
 # use full model for stepwise feature selection
-StepwiseFeature =step(slr,direction="both",trace=0)
+StepwiseFeature =step(slr_clean,direction="both",trace=0)
 summary(StepwiseFeature)
 
 #stepwise feature selection model
-slr_fsr = glm(y ~ job+marital+education+balance+housing+loan+contact+day+month+duration+campaign+poutcome, family = 'binomial',data = test_simple)
-
+slr_fsr = glm(y ~ job+marital+education+balance+housing+loan+contact+day+month+duration+campaign+pdays+poutcome, family = 'binomial',data = train)
 
 #predictions from stepwise output 
-slrPredict_fsr = predict(slr_fsr,newdata = test_simple,type = 'response')
+slrPredict_fsr = predict(slr_fsr,newdata = test,type = 'response')
+
+plot(slrPredict_fsr,
+     col = test$y,
+     main = 'Simple Log Regression Predictions: Stepwise',
+     ylab = 'Prediction',
+     xlab = 'Data Index')
 
 slrPredictnew_fsr<-factor(ifelse(as.numeric(slrPredict_fsr)>.5,'yes','no' ) ,levels = c('no','yes'))
-confusionMatrix(slrPredictnew_fsr,test_simple$y)
+confusionMatrix(slrPredictnew_fsr,test$y)
+
+#Pearson Chi^2 Test
+sum(residuals(slr_fsr, type = "pearson")^2)
+
+#CI and Odds Ratio
+exp(cbind(OR = coef(slr_fsr), confint(slr_fsr)))
+
+#Plotting Odds Ratio
+plot_model(slr_fsr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables:Stepwise LR')
+
 ```
 
+```{r Compare Clean Simple to Unclean Simple}
+
+anova(slr_fsr,slr_clean, test = "Chisq",class(slr_clean))
+
+```
 
 ```{r RELAXED LASSO: complex model}
+
 #cv model
 relaxed_cv_model = cv.glmnet(train_expl,train_resp,family = 'binomial',relax = TRUE)
 relaxed_best_lambda = relaxed_cv_model$lambda.min
-relaxed_best_lambda
-
+#relaxed_best_lambda
 
 #plot cv model
 coef(relaxed_cv_model,lambda = relaxed_best_lambda)
 plot(relaxed_cv_model,lambda = relaxed_best_lambda)
 
-head(train_expl)
+#head(train_expl)
+
 #use variables from cv
-
-
 #more complex uses different cut-off 
-# creating a less "accurate model" but decreases the FNR as we want to determine who might default on a loan.
+#creating a less "accurate model" but decreases the FNR as we want to determine who might default on a loan.
 rlasso_pred = predict(relaxed_cv_model,test_expl,type = 'response',s = relaxed_best_lambda)
-new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.10,'yes','no') ,levels = c('no','yes'))
+
+plot(rlasso_pred,col = test_resp,
+     main = 'Log Regression Predictions: Relaxed CV LASSO',
+     ylab = 'Prediction',
+     xlab = 'Data Index')
+#use .1 for cut-offf
+new_pred<-factor(ifelse(as.numeric(rlasso_pred)>.1,'yes','no') ,levels = c('no','yes'))
 confusionMatrix(new_pred,test_resp)
 
 ```
-
 
 ```{r ROC of LASSO}
 
@@ -169,5 +252,11 @@ log.roc<-roc(response=test_resp,predictor=rlasso_pred,levels=c("no","yes"))
 plot(log.roc,print.thres="best")
 auc = auc(log.roc)
 text(x = .4, y = .4,paste("AUC = ", round(auc,3), sep = ""))
+
+```
+
+```{r ANOVA SLR vs Rleaxed LASSO}
+
+anova(slr_fsr,relaxed_cv_model, test = "Chisq",class(relaxed_cv_model))
 
 ```
