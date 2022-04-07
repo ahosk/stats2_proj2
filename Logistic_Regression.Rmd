@@ -176,7 +176,11 @@ sum(residuals(slr_clean, type = "pearson")^2)
 plot_model(slr_clean,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR')
 ```
 
+```{r Compare Clean Simple to Unclean Simple}
 
+anova(slr_fsr,slr, test = "Chisq",class(relaxed_cv_model))
+
+```
 
 ```{r FSR: Feature Selection Simple Model}
 # use full model for stepwise feature selection
