@@ -129,11 +129,13 @@ exp(cbind(OR = coef(slr), confint(slr)))
 #predictions
 slrPredict = predict(slr,newdata = test_simple,type = 'response')
 
+
 plot(slrPredict,
      col = test_simple$y,
      main = 'Simple Log Regression Predictions',
      ylab = 'Prediction',
      xlab = 'Data Index')
+
 
 slrPredictnew<-factor(ifelse(as.numeric(slrPredict)>.5,'yes','no' ) ,levels = c('no','yes'))
 confusionMatrix(slrPredictnew,test_simple$y)
@@ -145,30 +147,62 @@ sum(residuals(slr, type = "pearson")^2)
 plot_model(slr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR')
 ```
 
+```{r simple logistic regression:Clean Data set}
+#create simple model
+slr_clean = glm(y ~ ., data = train, family = "binomial")
+summary(slr)
+
+#CI and Odds Ratio
+exp(cbind(OR = coef(slr_clean), confint(slr_clean)))
+
+#predictions
+slrPredict_clean = predict(slr_clean,newdata = test,type = 'response')
+
+
+plot(slrPredict_clean,
+     col = test$y,
+     main = 'Simple Log Regression Predictions',
+     ylab = 'Prediction',
+     xlab = 'Data Index')
+
+
+slrPredictnew_clean<-factor(ifelse(as.numeric(slrPredict_clean)>.5,'yes','no' ) ,levels = c('no','yes'))
+confusionMatrix(slrPredictnew_clean,test$y)
+
+#Pearson Chi^2 Test
+sum(residuals(slr_clean, type = "pearson")^2)
+
+#Plotting Odds Ratios
+plot_model(slr_clean,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables: SLR')
+```
+
+
 
 ```{r FSR: Feature Selection Simple Model}
 # use full model for stepwise feature selection
-StepwiseFeature =step(slr,direction="both",trace=0)
+StepwiseFeature =step(slr_clean,direction="both",trace=0)
 summary(StepwiseFeature)
 
 #stepwise feature selection model
-slr_fsr = glm(y ~ job+marital+education+balance+housing+loan+contact+day+month+duration+campaign+poutcome, family = 'binomial',data = test_simple)
-
+slr_fsr = glm(y ~ job+marital+education+balance+housing+loan+contact+day+month+duration+campaign+pdays+poutcome, family = 'binomial',data = train)
 
 #predictions from stepwise output 
-slrPredict_fsr = predict(slr_fsr,newdata = test_simple,type = 'response')
+slrPredict_fsr = predict(slr_fsr,newdata = test,type = 'response')
 
 plot(slrPredict_fsr,
-     col = test_simple$y,
+     col = test$y,
      main = 'Simple Log Regression Predictions: Stepwise',
      ylab = 'Prediction',
      xlab = 'Data Index')
 
 slrPredictnew_fsr<-factor(ifelse(as.numeric(slrPredict_fsr)>.5,'yes','no' ) ,levels = c('no','yes'))
-confusionMatrix(slrPredictnew_fsr,test_simple$y)
+confusionMatrix(slrPredictnew_fsr,test$y)
 
 #Pearson Chi^2 Test
 sum(residuals(slr_fsr, type = "pearson")^2)
+
+#CI and Odds Ratio
+exp(cbind(OR = coef(slr_fsr), confint(slr_fsr)))
 
 #Plotting Odds Ratio
 plot_model(slr_fsr,sort.est = TRUE,grid = TRUE,title = 'Odds Ratio for Explanitory Variables:Stepwise LR')
@@ -215,6 +249,6 @@ text(x = .4, y = .4,paste("AUC = ", round(auc,3), sep = ""))
 
 ```{r ANOVA SLR vs Rleaxed LASSO}
 
-anova(slr,relaxed_cv_model, test = "Chisq",class(relaxed_cv_model))
+anova(slr_clean,relaxed_cv_model, test = "Chisq",class(relaxed_cv_model))
 
 ```
