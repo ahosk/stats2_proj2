@@ -22,7 +22,10 @@ clean <-  df
 ##age
 hist(clean$age)
 head(clean)
-clean %>% ggplot(aes(y = y, x = factor(age), fill = y)) + geom_bar(stat='identity')
+clean %>% ggplot(aes(y = y, x = factor(age), fill = y)) + 
+  geom_bar(stat='identity') + ggtitle("Distribution of Age") + 
+  theme(axis.ticks.x=element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(), panel.background = element_blank()) + 
+  labs(x = "Age", y = " ")
 
 ## skewed right a little
 ```
@@ -39,8 +42,9 @@ clean$balance <- log(clean$balance)
 clean$balance[!is.infinite(rowSums(clean)),]
 is.infinite(clean$balance)
 clean <- clean %>% filter(!is.infinite(balance)) %>% filter(!is.na(balance))
-clean %>% ggplot(aes(x = y, y = balance)) + geom_boxplot()
+clean %>% ggplot(aes(x = y, y = balance)) + geom_boxplot() + theme_minimal() + labs(y = "balance") + ggtitle("Distribution of Balance")
 clean <- clean %>% filter(balance>=1)
+
 
 
 
@@ -55,6 +59,11 @@ clean <- clean %>% filter(balance>=1)
 
 hist(clean$day)
 summary(clean$day)
+
+clean %>% ggplot(aes(x = day, fill = y)) + 
+  geom_histogram() + ggtitle("Distribution of Day") + theme_minimal()
+
+
 ```
 
 
@@ -70,6 +79,8 @@ clean <- clean %>% filter(!is.infinite(duration)) %>% filter(!is.na(duration))
 hist(clean$duration)
 
 clean %>% ggplot(aes(x = y, y = duration)) + geom_boxplot()
+clean %>% ggplot(aes(x = duration, fill = y)) + geom_histogram() + theme_minimal() + ggtitle("Distribution of Duration")
+
 clean <- clean %>% filter(duration>=2)
 
 ###log transformed duration and removed outliers (under 2) to improve skewness
@@ -78,6 +89,8 @@ clean <- clean %>% filter(duration>=2)
 
 ```{r campaign}
 ###campaign
+
+clean %>% ggplot(aes(x = campaign, fill = y)) + geom_histogram() + theme_minimal() + ggtitle("Distribution of Campaign")
 
 summary(clean$campaign)
 hist(1/(clean$campaign))
@@ -94,6 +107,9 @@ hist(sqrt(clean$pdays))
 clean %>% ggplot(aes(x=y, y = sqrt(pdays))) +geom_boxplot()
 
 clean %>% mutate(pdays=sqrt(pdays)) %>% mutate(pdays=coalesce(pdays,0)) %>% count(pdays)
+
+clean %>% ggplot(aes(x = pdays, fill = y)) + geom_histogram() + theme_minimal() + ggtitle("Distribution of Pdays")
+
 
 
 ### sqrt is best transformation for pdays to approach normality, except it would 
@@ -112,6 +128,9 @@ clean %>% ggplot(aes(x=y, y=previous)) + geom_boxplot()
 clean <- clean %>% filter(previous<100)
 
 clean %>% mutate(previous=1/previous)
+
+clean %>% ggplot(aes(x = 1/previous, fill = y)) + geom_histogram() + theme_minimal() + ggtitle("Distribution of Previous")
+
 
 ###reciprocal transformation makes the most sense for previous variable, but even then, it's not really  normally distributed
 ###might be worth removing,  especially, since the reason it makes the most sense is bc the 0 is removed,
@@ -184,7 +203,7 @@ library(caret)
 under_lda <- lda(y~age+balance+day+duration, data=under_train)
 summary(under_lda)
 pred <- predict(under_lda, newdata=test[,-8])$class
-
+pred2 <- predict(under_lda, newdata=test[,-8])
 confusionMatrix(pred, test$y)
 
 ## Accuracy: 72.2%
@@ -217,13 +236,32 @@ confusionMatrix(pred_both, test$y)
 
 ### Under sample performed marginally better; however, given that only 4 numeric variables were used (only ones that met LDA assumptions), this method is not the best approach for this given dataset.
 ```
+
+```{r  ROC Curve}
+library(ROCR)
+
+pred4 <- as.data.frame(pred2)
+head(pred4)
+
+round <- pred4$posterior.yes
+pred5 <- prediction(round, test$y)
+perf <- performance(pred5, measure = "tpr", x.measure = "fpr")
+plot(perf, colorize=T, lwd=3)
+
+### AUC
+perf2 <- performance(pred5, measure = "auc", fpr.stop=0.5)
+perf2@y.values[[1]][1]
+
+```
+
+
 ```{r Random Forest}
 library(randomForest)
 
 ## unbalanced data
 summary(clean)
 
-rf <- randomForest(y~., data=train)
+rf <- randomForest(y~education+balance+housing+loan+contact+duration+pdays+previous, data=train)
 pred_rf <- predict(rf, newdata = test[-17])
 confusionMatrix(pred_rf, test$y)
 
@@ -235,7 +273,8 @@ confusionMatrix(pred_rf, test$y)
 ### balanced data
 ### under sampling
 
-under_rf <- randomForest(y~., data=under_train)
+under_rf <- randomForest(y~job + marital + education + balance + housing + 
+    loan + contact + day + month + duration + campaign + poutcome, data=under_train)
 pred_urf <- predict(under_rf, newdata = test[-17])
 confusionMatrix(pred_urf, test$y)
 
