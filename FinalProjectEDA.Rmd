@@ -7,22 +7,6 @@ library(ggplot2)
 #reading in the data
 df <- read.csv(file.choose(), header = T, fileEncoding="UTF-8-BOM")
 df
-
-#changing categorical variables to factors
-df$y <- as.factor(df$y)
-df$job = factor(df$job)
-df$marital = factor(df$marital)
-df$education = factor(df$education)
-df$default = factor(df$default)
-df$housing = factor(df$housing)
-df$loan = factor(df$loan)
-df$contact = factor(df$contact)
-df$poutcome = factor(df$poutcome)
-df$month = factor(df$month)
-
-#changing the duration column from seconds to minutes
-df$duration<−df$duration/60
-df
 ```
 # # # # # # 
 ```{r EDA}
@@ -30,6 +14,10 @@ df
 library(GGally)
 library(forcats)
 library(dplyr)
+
+#changing the duration column from seconds to minutes
+df$duration<−df$duration/60
+df
 
 #a view of the yes and no counts for the response variable
 valuecounts = df$y
@@ -88,4 +76,36 @@ p2 = ggplot(df,aes(x = fct_infreq(loan), fill=y)) +
 p2 + theme(axis.text.x=element_text(vjust=0.5)) #Adjusting tick label positions
 pnew <- p2 + guides(fill=guide_legend(title="Response")) #Changing the legend title
 pnew
+
+#PCA
+df.pr <- prcomp(df[c(1,6,10,12,13,14,15)], center = TRUE, scale = TRUE)
+summary(df.pr)
+
+screeplot(df.pr, type = "l", npcs = 15, main = "Screeplot of the 7 PCs")
+abline(h = 1, col="red", lty=5)
+legend("topright", legend=c("Eigenvalue = 1"),
+       col=c("red"), lty=5, cex=0.6)
+
+cumpro <- cumsum(df.pr$sdev^2 / sum(df.pr$sdev^2))
+plot(cumpro[0:15], xlab = "PC #", ylab = "Amount of explained variance", main = "Cumulative variance plot")
+abline(v = 6, col="blue", lty=5)
+abline(h = 0.88759, col="blue", lty=5)
+legend("topleft", legend=c("Cut-off @ PC6"),
+       col=c("blue"), lty=5, cex=0.6)
+
+plot(df.pr$x[,1],df.pr$x[,2], xlab="PC1", ylab = "PC2", main = "PC1 / PC2 - plot")
+
+library("factoextra")
+fviz_pca_ind(df.pr, geom.ind = "point", pointshape = 21, 
+             pointsize = 2, 
+             fill.ind = df$y, 
+             col.ind = "black", 
+             palette = "jco", 
+             addEllipses = TRUE,
+             label = "var",
+             col.var = "black",
+             repel = TRUE,
+             legend.title = "Response") +
+  ggtitle("2D PCA-plot from 7 feature dataset") +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
