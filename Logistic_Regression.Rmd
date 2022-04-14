@@ -188,6 +188,7 @@ summary(StepwiseFeature)
 #stepwise feature selection model
 slr_fsr = glm(y ~ job+marital+education+balance+housing+loan+contact+day+month+duration+campaign+pdays+poutcome, family = 'binomial',data = train)
 
+
 #predictions from stepwise output 
 slrPredict_fsr = predict(slr_fsr,newdata = test,type = 'response')
 
